@@ -1,5 +1,9 @@
 # Quantum Coin Demo ⚛️🪙
 
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow.svg)](https://www.javascript.com/) [![GitHub stars](https://img.shields.io/github/stars/yksanjo/quantum-noise-demo?style=social)](https://github.com/yksanjo/quantum-noise-demo/stargazers) [![GitHub forks](https://img.shields.io/github/forks/yksanjo/quantum-noise-demo.svg)](https://github.com/yksanjo/quantum-noise-demo/network/members) [![GitHub issues](https://img.shields.io/github/issues/yksanjo/quantum-noise-demo.svg)](https://github.com/yksanjo/quantum-noise-demo/issues)
+[![Last commit](https://img.shields.io/github/last-commit/yksanjo/quantum-noise-demo.svg)](https://github.com/yksanjo/quantum-noise-demo/commits/main)
+
+
 Interactive quantum computing demonstration showing superposition - a quantum coin that is heads **AND** tails simultaneously until measured.
 
 ## 🎯 The Demo
