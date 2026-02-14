@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Noise Demo - Interactive Superposition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a0f;
+            --bg-panel: #12121a;
+            --border: #1e1e2e;
+            --primary: #00d4ff;
+            --secondary: #ff00ff;
+            --accent: #00ff88;
+            --text: #e0e0e0;
+            --text-dim: #808090;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Starfield Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 0, 255, 0.03) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23fff' stop-opacity='0.8'/%3E%3Cstop offset='100%25' stop-color='%23fff' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='url(%23g)'%3E%3Ccircle cx='50' cy='50' r='1'/%3E%3Ccircle cx='150' cy='80' r='0.8'/%3E%3Ccircle cx='250' cy='30' r='1.2'/%3E%3Ccircle cx='350' cy='120' r='0.6'/%3E%3Ccircle cx='80' cy='200' r='1'/%3E%3Ccircle cx='180' cy='180' r='0.7'/%3E%3Ccircle cx='280' cy='220' r='1.1'/%3E%3Ccircle cx='380' cy='190' r='0.9'/%3E%3Ccircle cx='30' cy='300' r='1'/%3E%3Ccircle cx='130' cy='320' r='0.8'/%3E%3Ccircle cx='230' cy='280' r='1.3'/%3E%3Ccircle cx='330' cy='340' r='0.7'/%3E%3Ccircle cx='70' cy='380' r='1'/%3E%3Ccircle cx='170' cy='360' r='0.9'/%3E%3Ccircle cx='270' cy='390' r='1.1'/%3E%3Ccircle cx='370' cy='370' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        /* Live Demo Badge */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1199px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .bloch-section {
+                grid-column: span 2;
+                order: -1;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .bloch-section {
+                grid-column: span 1;
+            }
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0.6;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '◆';
+            font-size: 0.6rem;
+        }
+
+        /* Quantum Coin Demo */
+        .coin-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .coin-wrapper {
+            perspective: 1000px;
+            width: 150px;
+            height: 150px;
+        }
+
+        .coin {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .coin.spinning {
+            animation: coinFlip 1.5s ease-in-out infinite;
+        }
+
+        @keyframes coinFlip {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(1800deg); }
+        }
+
+        .coin-face {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+            border: 4px solid var(--primary);
+            box-shadow: 
+                0 0 30px rgba(0, 212, 255, 0.4),
+                inset 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .coin-front {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+        }
+
+        .coin-back {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+            transform: rotateY(180deg);
+        }
+
+        .coin-symbol {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .coin-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        .coin.superposition .coin-front,
+        .coin.superposition .coin-back {
+            border-color: var(--secondary);
+            box-shadow: 
+                0 0 40px rgba(255, 0, 255, 0.5),
+                inset 0 0 30px rgba(255, 0, 255, 0.2);
+        }
+
+        .coin.superposition .coin-symbol {
+            color: var(--secondary);
+        }
+
+        /* Probability Display */
+        .probability-display {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .prob-box {
+            text-align: center;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            min-width: 80px;
+        }
+
+        .prob-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .prob-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .prob-value.zero { color: var(--primary); }
+        .prob-value.one { color: var(--secondary); }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary), #cc00cc);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 0, 255, 0.4);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, var(--accent), #00cc6a);
+            color: #000;
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        /* Measurement Result */
+        .measurement-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.4s ease;
+        }
+
+        .measurement-result.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .result-label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .result-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--accent);
+        }
+
+        /* Bloch Sphere */
+        .bloch-section .panel {
+            min-height: 450px;
+        }
+
+        .bloch-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .bloch-container:active {
+            cursor: grabbing;
+        }
+
+        .bloch-svg {
+            width: 280px;
+            height: 280px;
+        }
+
+        .bloch-sphere {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 2;
+        }
+
+        .bloch-axis {
+            stroke: var(--text-dim);
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+            opacity: 0.5;
+        }
+
+        .bloch-ring {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 1;
+            opacity: 0.4;
+        }
+
+        .state-vector {
+            stroke: var(--accent);
+            stroke-width: 3;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 6px var(--accent));
+        }
+
+        .state-point {
+            fill: var(--accent);
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+
+        .pole-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            fill: var(--text);
+        }
+
+        .angle-display {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .angle-box {
+            text-align: center;
+        }
+
+        .angle-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .angle-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        /* Gate Panel */
+        .gate-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .gate-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text);
+        }
+
+        .gate-btn:hover {
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .gate-btn.active {
+            border-color: var(--secondary);
+            background: rgba(255, 0, 255, 0.15);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+        }
+
+        .gate-symbol {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .gate-name {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .gate-description {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+            margin-top: 10px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        /* State Display */
+        .state-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .state-title {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        .state-equation {
+            font-family: 'Fira Code', monospace;
+            font-size: 1rem;
+            color: var(--text);
+            word-break: break-all;
+        }
+
+        .ket-zero { color: var(--primary); }
+        .ket-one { color: var(--secondary); }
+        .ket-plus { color: var(--accent); }
+
+        /* Noise Simulator */
+        .noise-controls {
+            margin-bottom: 20px;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .slider-name {
+            color: var(--text);
+        }
+
+        .slider-value {
+            font-family: 'Fira Code', monospace;
+            color: var(--primary);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Comparison Panel */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .compare-box {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .compare-box.simulator {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--primary);
+        }
+
+        .compare-box.hardware {
+            background: rgba(255, 0, 255, 0.1);
+            border: 1px solid var(--secondary);
+        }
+
+        .compare-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .compare-box.simulator .compare-title {
+            color: var(--primary);
+        }
+
+        .compare-box.hardware .compare-title {
+            color: var(--secondary);
+        }
+
+        .fidelity-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .fidelity-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .compare-box.simulator .fidelity-fill {
+            background: var(--primary);
+            width: 100%;
+        }
+
+        .compare-box.hardware .fidelity-fill {
+            background: var(--secondary);
+            width: 70%;
+        }
+
+        .fidelity-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid var(--border);
+            margin-top: 30px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .footer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .footer-link:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .footer-link.primary {
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            color: #000;
+            border: none;
+        }
+
+        .footer-link.primary:hover {
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .credits {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-panel);
+            border: 1px solid var(--primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        /* Animation for state change */
+        @keyframes stateChange {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .state-changed {
+            animation: stateChange 0.4s ease;
+        }
+
+        /* Educational Note */
+        .edu-note {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 212, 255, 0.05);
+            border-left: 3px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-dim);
+        }
+
+        .edu-note strong {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QUANTUM NOISE DEMO</h1>
+            <p class="subtitle">Interactive Quantum Superposition & Noise Simulation</p>
+            <div class="live-badge">
+                <span>Live Demo Active</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Quantum Coin Demo -->
+            <div class="panel coin-section">
+                <h2 class="panel-title">Quantum Coin Analogy</h2>
+                <div class="coin-container">
+                    <div class="coin-wrapper">
+                        <div class="coin" id="quantumCoin">
+                            <div class="coin-face coin-front">
+                                <span class="coin-symbol">|0⟩</span>
+                                <span class="coin-label">Heads</span>
+                            </div>
+                            <div class="coin-face coin-back">
+                                <span class="coin-symbol">|1⟩</span>
+                                <span class="coin-label">Tails</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="probability-display">
+                        <div class="prob-box">
+                            <div class="prob-label">P(|0⟩)</div>
+                            <div class="prob-value zero" id="probZero">100%</div>
+                        </div>
+                        <div class="prob-box">
+                            <div class="prob-label">P(|1⟩)</div>
+                            <div class="prob-value one" id="probOne">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="spinBtn">Put in Superposition</button>
+                        <button class="btn btn-accent" id="measureBtn">Measure</button>
+                    </div>
+
+                    <div class="measurement-result" id="measurementResult">
+                        <div class="result-label">Measurement Result:</div>
+                        <div class="result-value" id="resultValue">|0⟩</div>
+                    </div>
+
+                    <div class="edu-note">
+                        <strong>💡 Did you know?</strong><br>
+                        In quantum mechanics, a qubit can exist in <strong>superposition</strong> — being both |0⟩ and |1⟩ simultaneously, like a spinning coin that's neither heads nor tails until you look at it!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloch Sphere -->
+            <div class="panel bloch-section">
+                <h2 class="panel-title">Interactive Bloch Sphere</h2>
+                <div class="bloch-container" id="blochContainer">
+                    <svg class="bloch-svg" viewBox="0 0 300 300" id="blochSvg">
+                        <!-- Sphere -->
+                        <ellipse cx="150" cy="150" rx="100" ry="100" class="bloch-sphere"/>
+                        <ellipse cx="150" cy="150" rx="100" ry="30" class="bloch-ring"/>
+                        <ellipse cx="150" cy="150" rx="30" ry="100" class="bloch-ring"/>
+                        <line x1="150" y1="50" x2="150" y2="250" class="bloch-axis"/>
+                        <line x1="50" y1="150" x2="250" y2="150" class="bloch-axis"/>
+                        
+                        <!-- Pole labels -->
+                        <text x="150" y="40" class="pole-label" fill="#00d4ff">|0⟩</text>
+                        <text x="150" y="270" class="pole-label" fill="#ff00ff">|1⟩</text>
+                        <text x="260" y="155" class="pole-label" fill="#808090">|+⟩</text>
+                        <text x="35" y="155" class="pole-label" fill="#808090">|-⟩</text>
+                        
+                        <!-- State Vector -->
+                        <line x1="150" y1="150" x2="150" y2="60" class="state-vector" id="stateVector"/>
+                        <circle cx="150" cy="60" r="8" class="state-point" id="statePoint"/>
+                    </svg>
+                </div>
+                <div class="angle-display">
+                    <div class="angle-box">
+                        <div class="angle-label">θ (theta)</div>
+                        <div class="angle-value" id="thetaValue">0°</div>
+                    </div>
+                    <div class="angle-box">
+                        <div class="angle-label">φ (phi)</div>
+                        <div class="angle-value" id="phiValue">0°</div>
+                    </div>
+                </div>
+                <div class="edu-note">
+                    <strong>🎯 How it works:</strong> The Bloch sphere represents all possible quantum states. The state vector shows where our qubit is. The North pole (|0⟩) is pure 0, South pole (|1⟩) is pure 1, and the equator is superposition!
+                </div>
+            </div>
+
+            <!-- Gate Demo -->
+            <div class="panel gate-section">
+                <h2 class="panel-title">Quantum Gates</h2>
+                <div class="gate-grid">
+                    <button class="gate-btn" data-gate="H" title="Creates superposition">
+                        <span class="gate-symbol">H</span>
+                        <span class="gate-name">Hadamard</span>
+                    </button>
+                    <button class="gate-btn" data-gate="X" title="Bit flip">
+                        <span class="gate-symbol">X</span>
+                        <span class="gate-name">Pauli-X</span>
+                    </button>
+                    <button class="gate-btn" data-gate="Z" title="Phase flip">
+                        <span class="gate-symbol">Z</span>
+                        <span class="gate-name">Pauli-Z</span>
+                    </button>
+                    <button class="gate-btn" data-gate="CNOT" title="Entanglement">
+                        <span class="gate-symbol">⊕</span>
+                        <span class="gate-name">CNOT</span>
+                    </button>
+                </div>
+                <div class="gate-description" id="gateDescription">
+                    Click a gate to see its effect on the quantum state.
+                </div>
+                <div class="state-display">
+                    <div class="state-title">Current Quantum State:</div>
+                    <div class="state-equation" id="currentState">|ψ⟩ = |0⟩</div>
+                </div>
+                <div class="edu-note">
+                    <strong>🔬 Quantum Gates:</strong> Like classical logic gates, quantum gates manipulate qubit states. The Hadamard (H) gate is special — it creates superposition from a definite state!
+                </div>
+            </div>
+        </div>
+
+        <!-- Noise Simulator Section -->
+        <div class="panel noise-section">
+            <h2 class="panel-title">Noise & Decoherence Simulator</h2>
+            <div class="noise-controls">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="slider-name">T1 Relaxation Time (μs)</span>
+                        <span class="slider-value" id="t1Value">100</span>
+                    </div>
+                    <input type="range" id="t1Slider" min="10" max="200" value="100">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="slider-name">T2 Dephasing Time (μs)</span>
+                        <span class="slider-value" id="t2Value">80</span>
+                    </div>
+                    <input type="range" id="t2Slider" min="10" max="200" value="80">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="slider-name">Operation Time (μs)</span>
+                        <span class="slider-value" id="opTimeValue">1</span>
+                    </div>
+                    <input type="range" id="opTimeSlider" min="1" max="50" value="1">
+                </div>
+            </div>
+            <div class="comparison">
+                <div class="compare-box simulator">
+                    <div class="compare-title">🖥️ Ideal Simulator</div>
+                    <div class="fidelity-bar">
+                        <div class="fidelity-fill" id="simFidelity"></div>
+                    </div>
+                    <div class="fidelity-value" id="simFidelityValue">Fidelity: 100%</div>
+                </div>
+                <div class="compare-box hardware">
+                    <div class="compare-title">🔬 Real Hardware (Simulated)</div>
+                    <div class="fidelity-bar">
+                        <div class="fidelity-fill" id="hwFidelity"></div>
+                    </div>
+                    <div class="fidelity-value" id="hwFidelityValue">Fidelity: 95.2%</div>
+                </div>
+            </div>
+            <div class="edu-note">
+                <strong>🌊 Quantum Noise:</strong> Real quantum computers suffer from noise — environmental interference causes errors. T1 is energy relaxation (|1⟩ → |0⟩), T2 is phase randomization. Lower times = more noise!
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://quantum-computing.ibm.com/" target="_blank" rel="noopener" class="footer-link primary">
+                    <span>🔬</span> Try on IBM Quantum
+                </a>
+                <a href="https://qiskit.org/" target="_blank" rel="noopener" class="footer-link">
+                    <span>📚</span> Learn Qiskit
+                </a>
+                <a href="https://quantum-computing.ibm.com/composer" target="_blank" rel="noopener" class="footer-link">
+                    <span>🎛️</span> Quantum Composer
+                </a>
+                <a href="https://learn.qiskit.org/course/quantum-hardware-pulses/calibrating-qubit-open-loop" target="_blank" rel="noopener" class="footer-link">
+                    <span>⚗️</span> Hardware Calibration
+                </a>
+            </div>
+            <p class="credits">Quantum Noise Demo — Educational Tool for Quantum Computing</p>
+        </footer>
+    </div>
+
+    <script>
+        // Quantum State Management
+        const quantumState = {
+            theta: 0,      // 0 to 180 degrees
+            phi: 0,        // 0 to 360 degrees
+            alpha: 1,      // amplitude for |0>
+            beta: 0,       // amplitude for |1>
+            isSuperposition: false,
+            lastMeasurement: null
+        };
+
+        // DOM Elements
+        const quantumCoin = document.getElementById('quantumCoin');
+        const probZero = document.getElementById('probZero');
+        const probOne = document.getElementById('probOne');
+        const spinBtn = document.getElementById('spinBtn');
+        const measureBtn = document.getElementById('measureBtn');
+        const measurementResult = document.getElementById('measurementResult');
+        const resultValue = document.getElementById('resultValue');
+        
+        // Bloch Sphere Elements
+        const stateVector = document.getElementById('stateVector');
+        const statePoint = document.getElementById('statePoint');
+        const thetaValue = document.getElementById('thetaValue');
+        const phiValue = document.getElementById('phiValue');
+        const blochContainer = document.getElementById('blochContainer');
+        
+        // Gate Elements
+        const gateButtons = document.querySelectorAll('.gate-btn');
+        const gateDescription = document.getElementById('gateDescription');
+        const currentState = document.getElementById('currentState');
+        
+        // Noise Elements
+        const t1Slider = document.getElementById('t1Slider');
+        const t2Slider = document.getElementById('t2Slider');
+        const opTimeSlider = document.getElementById('opTimeSlider');
+        const t1Value = document.getElementById('t1Value');
+        const t2Value = document.getElementById('t2Value');
+        const opTimeValue = document.getElementById('opTimeValue');
+        const simFidelity = document.getElementById('simFidelity');
+        const hwFidelity = document.getElementById('hwFidelity');
+        const simFidelityValue = document.getElementById('simFidelityValue');
+        const hwFidelityValue = document.getElementById('hwFidelityValue');
+
+        // Gate descriptions
+        const gateInfo = {
+            H: {
+                description: "Hadamard gate: Creates superposition! Transforms |0⟩ → (|0⟩ + |1⟩)/√2",
+                effect: "The H gate puts the qubit into an equal superposition — a 50/50 chance of being measured as 0 or 1!"
+            },
+            X: {
+                description: "Pauli-X gate: Quantum NOT gate. Flips |0⟩ → |1⟩ and |1⟩ → |0⟩",
+                effect: "Like a classical NOT gate, but watch the Bloch sphere — the state flips to the opposite pole!"
+            },
+            Z: {
+                description: "Pauli-Z gate: Applies phase shift. Leaves |0⟩ unchanged, flips |1⟩ → -|1⟩",
+                effect: "The Z gate doesn't change probabilities, but it changes the quantum phase — invisible to measurement alone!"
+            },
+            CNOT: {
+                description: "CNOT gate: Controlled-NOT. If control is |1⟩, flip the target qubit. Creates entanglement!",
+                effect: "CNOT creates quantum entanglement — the most 'quantum' phenomenon! Two qubits become correlated."
+            }
+        };
+
+        // Initialize
+        updateBlochSphere();
+        updateProbabilities();
+
+        // Quantum Coin Functions
+        spinBtn.addEventListener('click', () => {
+            // Reset measurement
+            measurementResult.classList.remove('show');
+            quantumState.lastMeasurement = null;
+            
+            // Animate coin
+            quantumCoin.classList.add('spinning');
+            quantumCoin.classList.add('superposition');
+            
+            setTimeout(() => {
+                quantumCoin.classList.remove('spinning');
+            }, 1500);
+            
+            // Update to superposition state
+            quantumState.isSuperposition = true;
+            quantumState.alpha = Math.SQRT1_2;
+            quantumState.beta = Math.SQRT1_2;
+            quantumState.theta = 90;
+            quantumState.phi = 0;
+            
+            updateProbabilities();
+            updateBlochSphere();
+            updateStateDisplay('|ψ⟩ = (|0⟩ + |1⟩)/√2');
+            
+            gateDescription.innerHTML = gateInfo.H.effect;
+        });
+
+        measureBtn.addEventListener('click', () => {
+            // Collapse superposition
+            const measuredState = Math.random() < 0.5 ? 0 : 1;
+            quantumState.lastMeasurement = measuredState;
+            
+            // Update probabilities to match measurement
+            if (measuredState === 0) {
+                quantumState.alpha = 1;
+                quantumState.beta = 0;
+                quantumState.theta = 0;
+                quantumCoin.style.transform = 'rotateY(0deg)';
+                resultValue.textContent = '|0⟩';
+            } else {
+                quantumState.alpha = 0;
+                quantumState.beta = 1;
+                quantumState.theta = 180;
+                quantumCoin.style.transform = 'rotateY(180deg)';
+                resultValue.textContent = '|1⟩';
+            }
+            
+            quantumState.isSuperposition = false;
+            quantumCoin.classList.remove('superposition');
+            
+            measurementResult.classList.add('show');
+            updateProbabilities();
+            updateBlochSphere();
+            updateStateDisplay(measuredState === 0 ? '|ψ⟩ = |0⟩' : '|ψ⟩ = |1⟩');
+        });
+
+        function updateProbabilities() {
+            const prob0 = Math.round(quantumState.alpha * quantumState.alpha * 100);
+            const prob1 = Math.round(quantumState.beta * quantumState.beta * 100);
+            
+            probZero.textContent = prob0 + '%';
+            probOne.textContent = prob1 + '%';
+        }
+
+        // Gate Functions
+        gateButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gate = btn.dataset.gate;
+                
+                // Highlight active gate
+                gateButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Apply gate effect
+                applyGate(gate);
+                
+                // Update description
+                gateDescription.innerHTML = gateInfo[gate].effect;
+            });
+        });
+
+        function applyGate(gate) {
+            // Reset measurement
+            measurementResult.classList.remove('show');
+            quantumState.lastMeasurement = null;
+            
+            switch(gate) {
+                case 'H':
+                    if (quantumState.theta === 0) {
+                        // |0⟩ -> |+⟩
+                        quantumState.theta = 90;
+                        quantumState.phi = 0;
+                        quantumState.alpha = Math.SQRT1_2;
+                        quantumState.beta = Math.SQRT1_2;
+                        quantumState.isSuperposition = true;
+                        quantumCoin.classList.add('superposition');
+                        updateStateDisplay('|ψ⟩ = (|0⟩ + |1⟩)/√2');
+                    } else if (quantumState.theta === 180) {
+                        // |1⟩ -> |-⟩
+                        quantumState.theta = 90;
+                        quantumState.phi = 180;
+                        quantumState.alpha = Math.SQRT1_2;
+                        quantumState.beta = -Math.SQRT1_2;
+                        quantumState.isSuperposition = true;
+                        quantumCoin.classList.add('superposition');
+                        updateStateDisplay('|ψ⟩ = (|0⟩ - |1⟩)/√2');
+                    }
+                    break;
+                    
+                case 'X':
+                    // Flip the state
+                    quantumState.theta = 180 - quantumState.theta;
+                    quantumState.phi = (quantumState.phi + 180) % 360;
+                    
+                    // Swap amplitudes
+                    const temp = quantumState.alpha;
+                    quantumState.alpha = quantumState.beta;
+                    quantumState.beta = temp;
+                    
+                    if (quantumState.theta === 0) {
+                        quantumState.isSuperposition = false;
+                        quantumCoin.classList.remove('superposition');
+                        updateStateDisplay('|ψ⟩ = |0⟩');
+                    } else if (quantumState.theta === 180) {
+                        quantumState.isSuperposition = false;
+                        quantumCoin.classList.remove('superposition');
+                        updateStateDisplay('|ψ⟩ = |1⟩');
+                    } else {
+                        quantumState.isSuperposition = true;
+                        quantumCoin.classList.add('superposition');
+                    }
+                    break;
+                    
+                case 'Z':
+                    // Phase flip - add 180 to phi
+                    quantumState.phi = (quantumState.phi + 180) % 360;
+                    
+                    // Change sign of beta
+                    quantumState.beta = -quantumState.beta;
+                    
+                    if (quantumState.theta === 90) {
+                        if (quantumState.beta < 0) {
+                            updateStateDisplay('|ψ⟩ = (|0⟩ - |1⟩)/√2');
+                        } else {
+                            updateStateDisplay('|ψ⟩ = (|0⟩ + |1⟩)/√2');
+                        }
+                    }
+                    break;
+                    
+                case 'CNOT':
+                    // For demo, show entanglement effect
+                    quantumState.theta = 90;
+                    quantumState.phi = 45;
+                    quantumState.alpha = Math.SQRT1_2;
+                    quantumState.beta = Math.SQRT1_2;
+                    quantumState.isSuperposition = true;
+                    quantumCoin.classList.add('superposition');
+                    updateStateDisplay('|ψ⟩ = (|00⟩ + |11⟩)/√2 (Entangled!)');
+                    break;
+            }
+            
+            updateProbabilities();
+            updateBlochSphere();
+        }
+
+        function updateStateDisplay(state) {
+            currentState.innerHTML = state;
+            currentState.classList.add('state-changed');
+            setTimeout(() => currentState.classList.remove('state-changed'), 400);
+        }
+
+        // Bloch Sphere Functions
+        function updateBlochSphere() {
+            const thetaRad = quantumState.theta * Math.PI / 180;
+            const phiRad = (quantumState.phi - 90) * Math.PI / 180; // Adjust for SVG coordinates
+            
+            const centerX = 150;
+            const centerY = 150;
+            const radius = 90;
+            
+            // Calculate position on sphere surface (flattened for 2D)
+            const x = centerX + radius * Math.sin(thetaRad) * Math.cos(phiRad);
+            const y = centerY - radius * Math.cos(thetaRad);
+            
+            stateVector.setAttribute('x2', x);
+            stateVector.setAttribute('y2', y);
+            statePoint.setAttribute('cx', x);
+            statePoint.setAttribute('cy', y);
+            
+            // Update angle displays
+            thetaValue.textContent = Math.round(quantumState.theta) + '°';
+            phiValue.textContent = Math.round(quantumState.phi) + '°';
+        }
+
+        // Interactive Bloch Sphere rotation
+        let isDragging = false;
+        let startX, startY;
+        
+        blochContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            quantumState.phi = (quantumState.phi + deltaX * 0.5) % 360;
+            quantumState.theta = Math.max(0, Math.min(180, quantumState.theta + deltaY * 0.3));
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            updateBlochSphere();
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support for mobile
+        blochContainer.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.touches[0].clientX - startX;
+            const deltaY = e.touches[0].clientY - startY;
+            
+            quantumState.phi = (quantumState.phi + deltaX * 0.5) % 360;
+            quantumState.theta = Math.max(0, Math.min(180, quantumState.theta + deltaY * 0.3));
+            
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            
+            updateBlochSphere();
+        });
+        
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Noise Simulator Functions
+        function calculateFidelity(t1, t2, opTime) {
+            // Simplified T1/T2 error model
+            const t1Error = Math.exp(-opTime / t1);
+            const t2Error = Math.exp(-opTime / t2);
+            
+            // Average error
+            const error = (t1Error + t2Error) / 2;
+            return Math.max(0, (1 - error * 0.1) * 100);
+        }
+
+        function updateNoiseSimulation() {
+            const t1 = parseInt(t1Slider.value);
+            const t2 = parseInt(t2Slider.value);
+            const opTime = parseInt(opTimeSlider.value);
+            
+            t1Value.textContent = t1;
+            t2Value.textContent = t2;
+            opTimeValue.textContent = opTime;
+            
+            // Simulator is always near perfect
+            simFidelity.style.width = '100%';
+            simFidelityValue.textContent = 'Fidelity: 100%';
+            
+            // Hardware varies with noise parameters
+            const hwFid = calculateFidelity(t1, t2, opTime);
+            hwFidelity.style.width = hwFid + '%';
+            hwFidelityValue.textContent = 'Fidelity: ' + hwFid.toFixed(1) + '%';
+        }
+
+        t1Slider.addEventListener('input', updateNoiseSimulation);
+        t2Slider.addEventListener('input', updateNoiseSimulation);
+        opTimeSlider.addEventListener('input', updateNoiseSimulation);
+
+        // Initialize noise simulation
+        updateNoiseSimulation();
+    </script>
+</body>
+</html>
